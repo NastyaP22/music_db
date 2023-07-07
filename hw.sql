@@ -104,6 +104,12 @@ VALUES (1, 1);
 INSERT INTO songs_collections(song_id, collection_id)
 VALUES (2, 3);
 
+INSERT INTO songs_collections(song_id, collection_id)
+VALUES(4, 4);
+
+INSERT INTO songs_collections(song_id, collection_id)
+VALUES(5, 5);
+
 INSERT INTO singers_genres(singer_id, genre_id)
 VALUES (1, 1);
 
@@ -150,42 +156,28 @@ SELECT name FROM singers
 WHERE LENGTH(name) - LENGTH(replace(name, ' ', '')) = 0
 
 SELECT name FROM songs
-WHERE name LIKE '%Мой%' OR name LIKE '%My%';
+WHERE name ILIKE 'my %'
+OR name ILIKE '% my %'
+OR name ILIKE '% my'
+OR name ILIKE 'my'
+OR name ILIKE 'мой %'
+OR name ILIKE '% мой %'
+OR name ILIKE '% мой'
+OR name ILIKE 'мой';
 
 # 3 задание
 
-SELECT COUNT(singer_id) FROM singers_genres
-WHERE genre_id = 1;
-
-SELECT COUNT(singer_id) FROM singers_genres
-WHERE genre_id = 2;
-
-SELECT COUNT(singer_id) FROM singers_genres
-WHERE genre_id = 3;
+SELECT genres.name, COUNT(singer_id) FROM genres
+LEFT JOIN singers_genres ON genres.genre_id = singers_genres.genre_id
+GROUP BY genres.genre_id;
 
 SELECT COUNT(song_id) FROM songs
 JOIN albums ON songs.album_id = albums.album_id
 WHERE year_of_release > 2018 AND year_of_release < 2021;
 
-SELECT AVG(duration) FROM songs
+SELECT albums.name, AVG(duration) FROM songs
 JOIN albums ON songs.album_id = albums.album_id
-WHERE albums.album_id = 1;
-
-SELECT AVG(duration) FROM songs
-JOIN albums ON songs.album_id = albums.album_id
-WHERE albums.album_id = 2;
-
-SELECT AVG(duration) FROM songs
-JOIN albums ON songs.album_id = albums.album_id
-WHERE albums.album_id = 3;
-
-SELECT AVG(duration) FROM songs
-JOIN albums ON songs.album_id = albums.album_id
-WHERE albums.album_id = 4;
-
-SELECT AVG(duration) FROM songs
-JOIN albums ON songs.album_id = albums.album_id
-WHERE albums.album_id = 5;
+GROUP BY albums.album_id;
 
 SELECT DISTINCT singers.name FROM singers
 JOIN singers_albums ON singers.singer_id = singers_albums.singer_id
@@ -195,8 +187,12 @@ WHERE singers.name <>
 JOIN singers_albums ON singers.singer_id = singers_albums.singer_id
 JOIN albums ON singers_albums.album_id = albums.album_id WHERE year_of_release = 2020);
 
-SELECT name FROM collections
-WHERE name LIKE '%Баста%';
+SELECT DISTINCT collections.name FROM collections
+JOIN songs_collections ON collections.collection_id = songs_collections.collection_id
+JOIN songs ON songs_collections.song_id = songs.song_id
+JOIN singers_albums ON songs.album_id = singers_albums.album_id
+JOIN singers ON singers_albums.singer_id = singers.singer_id
+WHERE singers.name = 'Баста';
 
 # 4 задание
 
@@ -205,12 +201,22 @@ JOIN singers_albums ON albums.album_id = singers_albums.album_id
 WHERE singers_albums.singer_id = (SELECT singers.singer_id FROM singers
 JOIN singers_genres ON singers.singer_id = singers_genres.singer_id 
 GROUP BY singers.singer_id 
-HAVING COUNT(singers_genres.singer_id) > 1)
+HAVING COUNT(singers_genres.singer_id) > 1);
 
-SELECT singers.name FROM singers_albums 
-JOIN albums ON albums.album_id = singers_albums.album_id
-JOIN songs ON songs.album_id = albums.album_id 
-JOIN singers ON singers.singer_id = singers_albums.singer_id
-WHERE singers_albums.album_id IN (SELECT album_id FROM songs
-ORDER BY duration
+SELECT singers.name FROM singers
+JOIN singers_albums ON singers.singer_id = singers_albums.singer_id
+JOIN songs ON songs.album_id = singers_albums.album_id 
+WHERE songs.duration = (SELECT MIN(duration) FROM songs
+JOIN albums ON songs.album_id = albums.album_id);
+
+SELECT songs.name FROM songs
+LEFT JOIN songs_collections ON songs.song_id = songs_collections.song_id
+WHERE songs_collections.song_id is NULL
+
+SELECT albums.name FROM albums
+JOIN songs ON albums.album_id = songs.album_id
+GROUP BY albums.album_id
+HAVING COUNT(song_id) = (SELECT COUNT(song_id) FROM songs
+GROUP BY album_id
+ORDER BY 1
 LIMIT 1)
